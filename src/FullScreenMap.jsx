@@ -3,7 +3,7 @@ import {
   Home, Search, Bell, User, Settings, Shield, 
   MapPin, AlertTriangle, MessageCircle, X, LogOut, Edit3, Save, LocateFixed, Maximize, Minimize 
 } from 'lucide-react';
-import { toast } from 'react-hot-toast'; 
+import { toast } from 'react-hot-toast'; // <<< USING TOAST NOW
 import './App.css';
 import MapComponent from './MapComponent';
 
@@ -12,8 +12,8 @@ const UserDashboard = () => {
   
   // --- NEW STATE FOR FULLSCREEN MAP ---
   const [isMapFullscreen, setIsMapFullscreen] = useState(false);
-  
-  // --- STATES FOR FEATURES ---
+  // -------------------------------------
+
   const [showAllAlerts, setShowAllAlerts] = useState(false);
   const [showComplaintModal, setShowComplaintModal] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -21,7 +21,6 @@ const UserDashboard = () => {
   
   const [userGps, setUserGps] = useState(null); 
 
-  // Complaint form state
   const [complaintForm, setComplaintForm] = useState({
     type: 'Theft',
     location: '',
@@ -30,7 +29,6 @@ const UserDashboard = () => {
     longitude: null,
   });
 
-  // Profile Editing State
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [userProfile, setUserProfile] = useState({
     name: "Jeevesh C",
@@ -39,7 +37,7 @@ const UserDashboard = () => {
     bio: "Civilian User • Bangalore"
   });
 
-  // --- MOCK DATA ---
+  // --- MOCK DATA (omitted for brevity) ---
   const alertsData = [
     { id: 1, type: "High Severity", msg: "Accident reported on Highway 4", level: "alert-high", date: "2 mins ago" },
     { id: 2, type: "Warning", msg: "Heavy rain expected in Sector 5", level: "alert-med", date: "1 hour ago" },
@@ -61,8 +59,8 @@ const UserDashboard = () => {
     setIsMapFullscreen(!isMapFullscreen);
   };
 
-  // 1. GPS Location Fetch on Mount
   useEffect(() => {
+    // GPS Location Fetch on Mount (Same as before)
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -77,17 +75,16 @@ const UserDashboard = () => {
         },
         (error) => {
           console.error("Error fetching GPS:", error);
-          toast.error("Location access denied or failed.", { id: 'gps-error' });
+          toast.error("Location access denied or failed.", { id: 'gps-error' }); // <<< TOAST USED HERE
         }
       );
     }
   }, []);
 
-  // 2. Complaint Submission Handler (FASTAPI INTEGRATION)
+  // Complaint Submission Handler (FASTAPI INTEGRATION)
   const handleSubmitComplaint = async () => {
-    const loadingToastId = toast.loading("Submitting complaint...", { duration: Infinity });
+    const loadingToastId = toast.loading("Submitting complaint...", { duration: Infinity }); // <<< TOAST USED HERE
     try {
-      // NOTE: Ensure your FastAPI server is running on http://127.0.0.1:8000
       const response = await fetch('http://127.0.0.1:8000/api/complaints', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -99,9 +96,8 @@ const UserDashboard = () => {
       }
 
       const result = await response.json();
-      toast.success(`Complaint lodged! Server: ${result.message}`, { id: loadingToastId });
+      toast.success(`Complaint lodged! Server: ${result.message}`, { id: loadingToastId }); // <<< TOAST USED HERE
       setShowComplaintModal(false);
-      
       // Reset form fields
       setComplaintForm({
         type: 'Theft',
@@ -113,10 +109,9 @@ const UserDashboard = () => {
 
     } catch (error) {
       console.error("Error submitting complaint:", error);
-      toast.error(`Submission failed. Is FastAPI running on port 8000?`, { id: loadingToastId });
+      toast.error(`Submission failed. Is FastAPI running on port 8000?`, { id: loadingToastId }); // <<< TOAST USED HERE
     }
   };
-
 
   // --- RENDER CONTENT ---
   const renderContent = () => {
@@ -126,10 +121,11 @@ const UserDashboard = () => {
       case 'home':
         const displayedAlerts = showAllAlerts ? alertsData : alertsData.slice(0, 2);
 
-        // Render full screen map if active
+        // Dynamically choose between map and grid layout
         if (isMapFullscreen) {
             return (
                 <div className="card" style={{ padding: 0, overflow: 'hidden', minHeight: 'calc(100vh - 100px)' }}>
+                    {/* Pass the toggle function and fullscreen state to the MapComponent */}
                     <MapComponent 
                         userGps={userGps} 
                         isFullscreen={isMapFullscreen} 
@@ -139,7 +135,6 @@ const UserDashboard = () => {
             );
         }
 
-        // Render normal grid layout
         return (
           <div className="grid-2-1">
             {/* Left Column: Map in normal view */}
@@ -154,7 +149,7 @@ const UserDashboard = () => {
             {/* Right Column: Alerts & Actions */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               
-              {/* Recent Alerts */}
+              {/* Recent Alerts (Omitted for brevity, remains the same) */}
               <div className="card">
                 <h3 style={{ marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <AlertTriangle color="orange" /> Recent Alerts
@@ -175,7 +170,7 @@ const UserDashboard = () => {
                 </button>
               </div>
 
-              {/* Forge Complaint Button */}
+              {/* Forge Complaint Button (Omitted for brevity, remains the same) */}
               <div className="card" style={{ textAlign: 'center', background: '#eaf4ff', border: '1px solid #1877f2' }}>
                 <h3>Witnessed an Incident?</h3>
                 <p style={{ margin: '10px 0', fontSize: '0.9rem', color: '#555' }}>Report incidents directly to the police control room.</p>
@@ -183,120 +178,117 @@ const UserDashboard = () => {
                   Forge Complaint
                 </button>
               </div>
+
             </div>
           </div>
         );
 
-      // 2. SEARCH TAB
+      // ... other cases ('search', 'notifications', 'profile', 'settings') remain the same
       case 'search':
-        const filteredTips = safetyTips.filter(t => 
-          t.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-          t.desc.toLowerCase().includes(searchQuery.toLowerCase())
-        );
-
+        // ... (return content for search tab)
         return (
-          <div className="card" style={{ maxWidth: '800px', margin: '0 auto' }}>
-            <h2 style={{ marginBottom: '20px' }}>Safety Knowledge Base</h2>
-            <div style={{ position: 'relative', marginBottom: '30px' }}>
-              <Search style={{ position: 'absolute', left: 15, top: 12, color: '#999' }} />
-              <input 
-                type="text" 
-                placeholder="Search related to safety measures, emergency tips..." 
-                className="form-control"
-                style={{ paddingLeft: '45px', padding: '15px 15px 15px 45px' }}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-
-            <div className="grid-cards">
-              {filteredTips.map(tip => (
-                <div key={tip.id} style={{ padding: '15px', border: '1px solid #eee', borderRadius: '8px' }}>
-                  <h4 style={{ color: 'var(--accent-color)', marginBottom: '5px' }}>{tip.title}</h4>
-                  <p style={{ fontSize: '0.9rem', color: '#555' }}>{tip.desc}</p>
+            <div className="card" style={{ maxWidth: '800px', margin: '0 auto' }}>
+                <h2 style={{ marginBottom: '20px' }}>Safety Knowledge Base</h2>
+                <div style={{ position: 'relative', marginBottom: '30px' }}>
+                    <Search style={{ position: 'absolute', left: 15, top: 12, color: '#999' }} />
+                    <input 
+                        type="text" 
+                        placeholder="Search related to safety measures, emergency tips..." 
+                        className="form-control"
+                        style={{ paddingLeft: '45px', padding: '15px 15px 15px 45px' }}
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                    />
                 </div>
-              ))}
-              {filteredTips.length === 0 && <p>No results found.</p>}
+
+                <div className="grid-cards">
+                    {safetyTips.filter(t => t.title.toLowerCase().includes(searchQuery.toLowerCase()) || t.desc.toLowerCase().includes(searchQuery.toLowerCase())).map(tip => (
+                        <div key={tip.id} style={{ padding: '15px', border: '1px solid #eee', borderRadius: '8px' }}>
+                            <h4 style={{ color: 'var(--accent-color)', marginBottom: '5px' }}>{tip.title}</h4>
+                            <p style={{ fontSize: '0.9rem', color: '#555' }}>{tip.desc}</p>
+                        </div>
+                    ))}
+                </div>
             </div>
-          </div>
         );
 
-      // 3. NOTIFICATIONS TAB
       case 'notifications':
+        // ... (return content for notifications tab)
         return (
-          <div className="card" style={{ maxWidth: '700px', margin: '0 auto' }}>
-            <h2 style={{ marginBottom: '20px' }}>Notifications</h2>
-            {[1,2,3,4].map((n) => (
-              <div key={n} style={{ display: 'flex', gap: '15px', padding: '15px', borderBottom: '1px solid #eee' }}>
-                <div style={{ width: '12px', height: '12px', background: n===1 ? 'red' : '#ddd', borderRadius: '50%', marginTop: '6px' }}></div>
-                <div>
-                  <strong>{n===1 ? 'Emergency Alert' : 'System Update'}</strong>
-                  <p style={{ fontSize: '0.9rem', color: '#555', marginTop: '4px' }}>
-                    {n===1 ? 'Heavy traffic reported near your saved location.' : 'Your complaint status has been updated to "Reviewed".'}
-                  </p>
-                  <small style={{ color: '#999' }}>{n} hours ago</small>
-                </div>
-              </div>
-            ))}
-          </div>
+            <div className="card" style={{ maxWidth: '700px', margin: '0 auto' }}>
+                <h2 style={{ marginBottom: '20px' }}>Notifications</h2>
+                {[1,2,3,4].map((n) => (
+                    <div key={n} style={{ display: 'flex', gap: '15px', padding: '15px', borderBottom: '1px solid #eee' }}>
+                        <div style={{ width: '12px', height: '12px', background: n===1 ? 'red' : '#ddd', borderRadius: '50%', marginTop: '6px' }}></div>
+                        <div>
+                            <strong>{n===1 ? 'Emergency Alert' : 'System Update'}</strong>
+                            <p style={{ fontSize: '0.9rem', color: '#555', marginTop: '4px' }}>
+                                {n===1 ? 'Heavy traffic reported near your saved location.' : 'Your complaint status has been updated to "Reviewed".'}
+                            </p>
+                            <small style={{ color: '#999' }}>{n} hours ago</small>
+                        </div>
+                    </div>
+                ))}
+            </div>
         );
-
-      // 4. PROFILE TAB
+      
       case 'profile':
+        // ... (return content for profile tab)
         return (
-          <div className="card" style={{ maxWidth: '600px', margin: '0 auto', textAlign: 'center' }}>
-            <div style={{ width: '100px', height: '100px', background: 'var(--accent-color)', color: 'white', fontSize: '2.5rem', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
-              {userProfile.name.charAt(0)}
-            </div>
-            
-            <div style={{ textAlign: 'left', marginTop: '20px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-                <h3>User Profile</h3>
-                <button className="btn btn-outline" onClick={() => setIsEditingProfile(!isEditingProfile)}>
-                  {isEditingProfile ? <Save size={16} /> : <Edit3 size={16} />} {isEditingProfile ? "Save" : "Customize"}
+            <div className="card" style={{ maxWidth: '600px', margin: '0 auto', textAlign: 'center' }}>
+                <div style={{ width: '100px', height: '100px', background: 'var(--accent-color)', color: 'white', fontSize: '2.5rem', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+                    {userProfile.name.charAt(0)}
+                </div>
+                
+                <div style={{ textAlign: 'left', marginTop: '20px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                        <h3>User Profile</h3>
+                        <button className="btn btn-outline" onClick={() => setIsEditingProfile(!isEditingProfile)}>
+                            {isEditingProfile ? <Save size={16} /> : <Edit3 size={16} />} {isEditingProfile ? "Save" : "Customize"}
+                        </button>
+                    </div>
+
+                    <div className="form-group">
+                        <label>Full Name</label>
+                        {isEditingProfile ? (
+                            <input className="form-control" value={userProfile.name} onChange={(e) => setUserProfile({...userProfile, name: e.target.value})} />
+                        ) : (
+                            <p>{userProfile.name}</p>
+                        )}
+                    </div>
+
+                    <div className="form-group">
+                        <label>Email Address</label>
+                        {isEditingProfile ? (
+                            <input className="form-control" value={userProfile.email} onChange={(e) => setUserProfile({...userProfile, email: e.target.value})} />
+                        ) : (
+                            <p>{userProfile.email}</p>
+                        )}
+                    </div>
+
+                    <div className="form-group">
+                        <label>Bio</label>
+                         <p>{userProfile.bio}</p>
+                    </div>
+                </div>
+
+                <hr style={{ margin: '30px 0', border: '0', borderTop: '1px solid #eee' }} />
+                
+                <button className="btn btn-danger" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+                    <LogOut size={18} /> Log Out
                 </button>
-              </div>
-
-              <div className="form-group">
-                <label>Full Name</label>
-                {isEditingProfile ? (
-                  <input className="form-control" value={userProfile.name} onChange={(e) => setUserProfile({...userProfile, name: e.target.value})} />
-                ) : (
-                  <p>{userProfile.name}</p>
-                )}
-              </div>
-
-              <div className="form-group">
-                <label>Email Address</label>
-                {isEditingProfile ? (
-                  <input className="form-control" value={userProfile.email} onChange={(e) => setUserProfile({...userProfile, email: e.target.value})} />
-                ) : (
-                  <p>{userProfile.email}</p>
-                )}
-              </div>
-
-              <div className="form-group">
-                <label>Bio</label>
-                 <p>{userProfile.bio}</p>
-              </div>
             </div>
-
-            <hr style={{ margin: '30px 0', border: '0', borderTop: '1px solid #eee' }} />
-            
-            <button className="btn btn-danger" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
-              <LogOut size={18} /> Log Out
-            </button>
-          </div>
         );
 
-      // 5. SETTINGS
       case 'settings':
+        // ... (return content for settings tab)
         return (
             <div className="card">
              <h2>Settings</h2>
              <p>Application configurations go here.</p>
             </div>
         );
+
 
       default: return null;
     }
@@ -340,7 +332,7 @@ const UserDashboard = () => {
         {renderContent()}
       </div>
 
-      {/* --- MODAL: FORGE COMPLAINT --- */}
+      {/* --- MODAL: FORGE COMPLAINT (Omitted for brevity, remains the same) --- */}
       {showComplaintModal && (
         <div className="modal-overlay">
             <div className="modal-box">
@@ -408,7 +400,7 @@ const UserDashboard = () => {
         </div>
       )}
 
-      {/* --- CHATBOT --- */}
+      {/* --- CHATBOT (Omitted for brevity, remains the same) --- */}
       <div className="chatbot-btn" onClick={() => setIsChatOpen(!isChatOpen)}>
         {isChatOpen ? <X size={24} /> : <MessageCircle size={24} />}
       </div>

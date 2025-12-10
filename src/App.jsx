@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import UserDashboard from './UserDashboard';
 import PoliceDashboard from './PoliceDashboard';
 import './App.css';
+import { Toaster } from 'react-hot-toast'; // Import Toaster
 
 function App() {
   const [role, setRole] = useState('user'); // 'user' or 'police'
@@ -10,6 +11,13 @@ function App() {
     <div>
       {/* RENDER ACTIVE DASHBOARD */}
       {role === 'user' ? <UserDashboard /> : <PoliceDashboard />}
+
+      {/* REACT HOT TOAST TOASTER - Added here for global access */}
+      <Toaster 
+        position="top-right" 
+        reverseOrder={false} 
+        toastOptions={{ style: { zIndex: 99999 } }}
+      /> 
 
       {/* DEV ROLE SWITCHER (Bottom Right) */}
       <div style={{
