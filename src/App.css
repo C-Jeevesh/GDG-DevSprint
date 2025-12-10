@@ -1,5 +1,5 @@
 /* src/App.css */
-
+@import 'leaflet/dist/leaflet.css';
 :root {
   --bg-main: #f0f2f5;
   --bg-card: #ffffff;
@@ -129,3 +129,40 @@ body { background-color: var(--bg-main); color: var(--text-primary); overflow: h
 .btn-primary { background: var(--accent-color); color: white; }
 .btn-danger { background: var(--danger-color); color: white; }
 .btn-outline { background: white; border: 1px solid var(--border-color); }
+/* --- FULLSCREEN MAP STYLES (REQUIRED FOR USERDASHBOARD) --- */
+
+/* 1. Hide the scrollbar and make the container fit the viewport perfectly */
+.dashboard-container.fullscreen-map-active {
+    position: fixed; /* Fixes the container to the viewport */
+    top: 0; left: 0;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden; /* Prevents scrollbars */
+    padding: 0;
+    margin: 0;
+    z-index: 9990; /* High z-index to place it over everything else */
+    display: block; /* Overrides the default flex behavior */
+}
+
+/* 2. Make the main content area fill the whole screen in fullscreen mode */
+.dashboard-container.fullscreen-map-active .main-content {
+    padding: 0; /* Remove padding */
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+/* 3. Ensure the map card/div itself takes up the whole space */
+.dashboard-container.fullscreen-map-active .card {
+    border-radius: 0 !important; /* Remove rounded corners */
+    box-shadow: none !important; /* Remove shadow */
+    width: 100%;
+    height: 100%;
+    min-height: 100vh !important;
+}
+
+/* 4. Hide other elements that might interfere */
+.dashboard-container.fullscreen-map-active .chatbot-btn {
+    display: none;
+}
+/* Note: The top-navbar is already conditionally rendered in UserDashboard.jsx */
