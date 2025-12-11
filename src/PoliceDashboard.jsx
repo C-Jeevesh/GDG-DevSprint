@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Shield, Map, FileText, Bell, Users, CheckCircle, Radio } from 'lucide-react';
 import './App.css';
+import PoliceMapComponent from './PoliceMapComponent'; // <-- IMPORTED MAP COMPONENT
 
 const PoliceDashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -17,16 +18,17 @@ const PoliceDashboard = () => {
 
   const renderContent = () => {
     switch (activeTab) {
+      
       case 'dashboard':
         return (
           <div className="grid-2-1">
-            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-              <div className="map-placeholder" style={{ background: '#2c3e50' }}>
-                <Map size={64} style={{ opacity: 0.8 }} />
-                <h3>Tactical Map View</h3>
-                <p>Monitoring Active Units</p>
-              </div>
+            {/* ------------------------------------------ */}
+            {/* MAP VIEW AREA - REPLACED WITH LIVE MAP     */}
+            {/* ------------------------------------------ */}
+            <div className="card" style={{ padding: 0, overflow: 'hidden', minHeight: '500px' }}>
+              <PoliceMapComponent />
             </div>
+
             <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
               <div className="card">
                 <h3>Station Overview</h3>
