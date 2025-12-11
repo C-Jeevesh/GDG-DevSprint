@@ -1,103 +1,108 @@
-import React from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap, ZoomControl } from 'react-leaflet';
-import { Maximize, Minimize } from 'lucide-react';
+import React, { useEffect } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, useMap, ZoomControl, Circle } from 'react-leaflet';
+import { Maximize, Minimize, AlertTriangle } from 'lucide-react';
 import L from 'leaflet';
 
-// Fix for default marker icons not showing up 
+// --- Icon Fixes ---
 delete L.Icon.Default.prototype._getIconUrl;
-
 L.Icon.Default.mergeOptions({
     iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
     iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
     shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 });
 
-// Component to recenter the map view
-const ChangeMapView = ({ center, zoom }) => {
+// Custom Red Icon for Alerts
+const alertIcon = new L.Icon({
+    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41]
+});
+
+const ChangeMapView = ({ center, zoom, focusedLocation }) => {
   const map = useMap();
   
-  React.useEffect(() => {
-    map.setView(center, zoom, {
-      animate: true, 
-      duration: 0.5 
-    });
-    // Forces map to re-render its tiles when container size changes (e.g., fullscreen toggle)
-    setTimeout(() => {
-        map.invalidateSize();
-    }, 100); 
-  }, [center, zoom, map]);
+  useEffect(() => {
+    if (center && !focusedLocation) {
+        map.setView(center, zoom, { animate: true });
+    }
+  }, [center, zoom, map, focusedLocation]);
+
+  useEffect(() => {
+      if (focusedLocation) {
+          map.flyTo(focusedLocation, 16, { animate: true, duration: 1.5 });
+      }
+  }, [focusedLocation, map]);
+
+  useEffect(() => {
+      setTimeout(() => { map.invalidateSize(); }, 100); 
+  }, [map]);
 
   return null;
 };
 
-// Initial state for the map view
-const initialCenter = [12.9716, 77.5946]; // Default to Bangalore coordinates
-const initialZoom = 13;
+const initialCenter = [12.9716, 77.5946];
 
-// The MapComponent now accepts userGps, isFullscreen, and toggleFullscreen as props
-const MapComponent = ({ userGps, isFullscreen, toggleFullscreen }) => {
-    
-    // Set map center: use user's location if available, otherwise use default
+// Added 'alerts' prop
+const MapComponent = ({ userGps, isFullscreen, toggleFullscreen, focusedLocation, alerts = [] }) => {
     const mapCenter = userGps || initialCenter;
-
-    // Use OpenStreetMap (OSM) as the free tile provider
-    const osmTileLayer = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
-    const attribution = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+    
+    // 2km Radius configuration
+    const radiusOptions = { color: 'red', fillColor: '#ff3b30', fillOpacity: 0.1, weight: 1 };
 
     return (
         <MapContainer 
             center={mapCenter} 
-            zoom={initialZoom} 
+            zoom={13} 
             scrollWheelZoom={true}
-            // Dynamic styling for fullscreen visual effect
             style={{ height: '100%', width: '100%', borderRadius: isFullscreen ? '0px' : '15px' }} 
-            zoomControl={false} // Disable default zoom control
+            zoomControl={false}
         >
             <TileLayer
-                attribution={attribution}
-                url={osmTileLayer}
+                attribution='&copy; OpenStreetMap'
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
             <ZoomControl position="bottomright" />
 
-            {/* Component to update map center */}
-            <ChangeMapView center={mapCenter} zoom={initialZoom} />
+            <ChangeMapView center={mapCenter} zoom={14} focusedLocation={focusedLocation} />
 
-            {/* Fullscreen Toggle Button */}
             <button
                 onClick={toggleFullscreen}
                 style={{
-                    position: 'absolute',
-                    top: isFullscreen ? '20px' : '10px',
-                    right: isFullscreen ? '20px' : '10px',
-                    zIndex: 1000,
-                    background: 'white',
-                    border: 'none',
-                    borderRadius: '4px',
-                    padding: '8px',
-                    boxShadow: '0 2px 5px rgba(0,0,0,0.2)',
-                    cursor: 'pointer',
-                    color: 'var(--text-primary)'
+                    position: 'absolute', top: isFullscreen ? '20px' : '10px', right: isFullscreen ? '20px' : '10px',
+                    zIndex: 1000, background: 'white', border: 'none', borderRadius: '4px', padding: '8px',
+                    boxShadow: '0 2px 5px rgba(0,0,0,0.2)', cursor: 'pointer', color: 'var(--text-primary)'
                 }}
-                title={isFullscreen ? "Exit Fullscreen" : "Go Fullscreen"}
             >
                 {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
             </button>
 
-            {/* User Location Marker */}
+            {/* --- USER LOCATION & RADIUS --- */}
             {userGps && (
-                <Marker position={userGps}>
-                    <Popup>
-                        Your Current Location.
-                    </Popup>
-                </Marker>
+                <>
+                    <Marker position={userGps}>
+                        <Popup><strong>You are here</strong><br/>Safe Zone Monitored</Popup>
+                    </Marker>
+                    {/* The 2km Radius Circle */}
+                    <Circle center={userGps} pathOptions={radiusOptions} radius={2000} />
+                </>
             )}
 
-            {/* Static marker example (e.g., a reported incident) */}
-            <Marker position={[12.98, 77.58]}>
-                <Popup>
-                    🚨 Accident Reported Here!
-                </Popup>
-            </Marker>
+            {/* --- ALERT MARKERS --- */}
+            {alerts.map(alert => (
+                <Marker key={alert.id} position={alert.coords} icon={alertIcon}>
+                    <Popup>
+                        <div style={{ textAlign: 'center' }}>
+                            <strong style={{color: '#d63031'}}>{alert.type}</strong>
+                            <p style={{margin: '5px 0', fontSize: '0.9rem'}}>{alert.msg}</p>
+                            <small>{alert.distance} km away</small>
+                        </div>
+                    </Popup>
+                </Marker>
+            ))}
+
         </MapContainer>
     );
 };

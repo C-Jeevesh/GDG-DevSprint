@@ -112,7 +112,7 @@ body { font-family: sans-serif; background-color: #f0f2f5; }
 /* --- BOTTOM NAV --- */
 .bottom-nav {
   position: absolute; bottom: 0; width: 100%; height: 70px;
-  background-color: #fff; border-top: 1px solid #ddd;
+  background-color: #fff; border-top: 100px solid #ddd;
   display: flex; justify-content: space-around; align-items: center;
   z-index: 100;
 }
