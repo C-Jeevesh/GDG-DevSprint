@@ -25,8 +25,8 @@ const UserDashboard = () => {
   // --- LAYOUT STATES ---
   const [activeTab, setActiveTab] = useState('home');
   const [isMapFullscreen, setIsMapFullscreen] = useState(false);
-  const [isMenuOpen, setIsMenuOpen] = useState(false); // Sidebar Menu State
-  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false); // Logout Modal
+  const [isMenuOpen, setIsMenuOpen] = useState(false); 
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false); 
 
   // --- FEATURE STATES ---
   const [showAllAlerts, setShowAllAlerts] = useState(false);
@@ -36,20 +36,12 @@ const UserDashboard = () => {
   
   // --- LOCATION & MAP STATES ---
   const [userGps, setUserGps] = useState(null); 
-  const [focusedLocation, setFocusedLocation] = useState(null); // Used to fly map to specific alerts
-
-  // --- DATA STATES ---
-  const [allAlerts, setAllAlerts] = useState([
-    { id: 1, type: "High Severity", msg: "Accident reported on Highway 4", level: "alert-high", date: "2 mins ago", coords: [12.9352, 77.6245], distance: null },
-    { id: 2, type: "Warning", msg: "Heavy rain expected in Sector 5", level: "alert-med", date: "1 hour ago", coords: [12.9250, 77.5938], distance: null },
-    { id: 3, type: "Info", msg: "Road maintenance on MG Road", level: "alert-med", date: "Yesterday", coords: [12.9716, 77.5946], distance: null },
-    { id: 4, type: "Resolved", msg: "Traffic jam cleared at Silk Board", level: "alert-med", date: "2 days ago", coords: [12.9177, 77.6233], distance: null },
-  ]);
+  const [focusedLocation, setFocusedLocation] = useState(null); 
 
   // --- CHATBOT STATE ---
   const [chatInput, setChatInput] = useState("");
   const [chatHistory, setChatHistory] = useState([
-    { sender: 'bot', text: 'Hello! I am Locono AI. Type "SOS" for emergencies, or ask me about safety laws.' }
+    { sender: 'bot', text: 'Hello! I am Locono AI. Type "SOS" for emergencies, or ask me about safety alerts.' }
   ]);
   const chatEndRef = useRef(null);
 
@@ -63,6 +55,17 @@ const UserDashboard = () => {
   });
 
   const [isEditingProfile, setIsEditingProfile] = useState(false);
+
+  // --- MOCK DATA ---
+  // Added enough items so "View More" works visibly
+  const [allAlerts, setAllAlerts] = useState([
+    { id: 1, type: "High Severity", msg: "Accident reported on Highway 4", level: "alert-high", date: "2 mins ago", coords: [12.9352, 77.6245], distance: null },
+    { id: 2, type: "Warning", msg: "Heavy rain expected in Sector 5", level: "alert-med", date: "1 hour ago", coords: [12.9250, 77.5938], distance: null },
+    { id: 3, type: "Info", msg: "Road maintenance on MG Road", level: "alert-med", date: "Yesterday", coords: [12.9716, 77.5946], distance: null },
+    { id: 4, type: "Resolved", msg: "Traffic jam cleared at Silk Board", level: "alert-med", date: "2 days ago", coords: [12.9177, 77.6233], distance: null },
+    { id: 5, type: "Theft", msg: "Chain snatching reported near Central Park", level: "alert-high", date: "3 days ago", coords: [12.9279, 77.6271], distance: null },
+    { id: 6, type: "Info", msg: "Street lights repair scheduled", level: "alert-med", date: "4 days ago", coords: [12.9300, 77.6000], distance: null },
+  ]);
 
   const safetyTips = [
     { id: 1, title: "Night Travel", desc: "Share your live location with trusted contacts." },
@@ -92,21 +95,11 @@ const UserDashboard = () => {
               setAllAlerts(prev => {
                   if(prev.some(a => a.isDynamic)) return prev;
 
+                  // Add alerts near the user's REAL location for demo
                   const randomOffset = () => (Math.random() - 0.5) * 0.015; 
-                  
                   const newNearbyAlerts = [
-                      { 
-                          id: 901, type: "Suspicious Activity", msg: "Reported in your immediate vicinity.", 
-                          level: "alert-high", date: "Just now", 
-                          coords: [latitude + randomOffset(), longitude + randomOffset()], 
-                          isDynamic: true 
-                      },
-                      { 
-                          id: 902, type: "Accident", msg: "Minor collision detected nearby.", 
-                          level: "alert-med", date: "10 mins ago", 
-                          coords: [latitude + randomOffset(), longitude + randomOffset()], 
-                          isDynamic: true 
-                      }
+                      { id: 901, type: "Suspicious Activity", msg: "Reported in your immediate vicinity.", level: "alert-high", date: "Just now", coords: [latitude + randomOffset(), longitude + randomOffset()], isDynamic: true },
+                      { id: 902, type: "Accident", msg: "Minor collision detected nearby.", level: "alert-med", date: "10 mins ago", coords: [latitude + randomOffset(), longitude + randomOffset()], isDynamic: true }
                   ];
                   return [...newNearbyAlerts, ...prev];
               });
@@ -121,14 +114,13 @@ const UserDashboard = () => {
         },
         (error) => {
           console.error("GPS Error:", error);
-          toast.error("Location access denied or failed.", { id: 'gps-error' });
+          toast.error("Location access denied.", { id: 'gps-error' });
         },
         { enableHighAccuracy: true }
       );
-
       return () => navigator.geolocation.clearWatch(watchId);
     }
-  }, []); 
+  }, []);
 
   // 2. PROCESS ALERTS (Calculate Distances)
   const processedAlerts = allAlerts.map(alert => {
@@ -138,16 +130,13 @@ const UserDashboard = () => {
   }).sort((a, b) => a.distance - b.distance); 
 
   const nearbyAlerts = processedAlerts.filter(a => parseFloat(a.distance) <= 2.0);
+  const otherAlerts = processedAlerts.filter(a => parseFloat(a.distance) > 2.0);
   
-  // --- FIXED LOGIC HERE ---
-  // If showAllAlerts is false, strictly show only the first 2 items.
-  const displayList = showAllAlerts ? processedAlerts : processedAlerts.slice(0, 2);
+  // Logic: Show everything if "View More" is clicked, otherwise just 3 items
+  const displayList = showAllAlerts ? processedAlerts : processedAlerts.slice(0, 3);
 
   // --- HANDLERS ---
-  
-  const toggleFullscreenMap = () => {
-    setIsMapFullscreen(!isMapFullscreen);
-  };
+  const toggleFullscreenMap = () => setIsMapFullscreen(!isMapFullscreen);
   
   const handleAlertClick = (coords) => {
     if(coords) {
@@ -170,35 +159,30 @@ const UserDashboard = () => {
     const userMsg = { sender: 'user', text: chatInput };
     setChatHistory(prev => [...prev, userMsg]);
     
-    // Store input and clear field
     const messageToSend = chatInput;
-    setChatInput("");
+    setChatInput(""); 
 
     try {
-      // 2. Connect to Python Backend
+      // 2. Connect to Python Backend (Must use the SQLite/Gemini version)
       const response = await fetch('http://127.0.0.1:8000/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
             message: messageToSend,
-            user_id: "user_dashboard" 
+            user_context: "User Dashboard" 
         })
       });
 
-      if (!response.ok) {
-        throw new Error(`Server error: ${response.status}`);
-      }
+      if (!response.ok) throw new Error("Server Error");
 
-      // 3. Process Response
       const data = await response.json();
       setChatHistory(prev => [...prev, { sender: 'bot', text: data.response }]);
 
     } catch (error) {
       console.error("Chat Error:", error);
-      // Fallback if backend is offline
       setChatHistory(prev => [...prev, { 
         sender: 'bot', 
-        text: "⚠️ Unable to reach LOCONO server. Please ensure the backend (main.py) is running." 
+        text: "⚠️ Backend offline. Ensure 'main.py' is running on port 8000." 
       }]);
     }
   };
@@ -348,7 +332,7 @@ const UserDashboard = () => {
                   <p style={{ fontSize: '0.9rem', color: '#555', marginTop: '4px' }}>
                     {n===1 ? 'Heavy traffic reported near your saved location.' : 'Your complaint status has been updated to "Reviewed".'}
                   </p>
-                  <small style={{ color: '#ff0000ff' }}>{n} hours ago</small>
+                  <small style={{ color: '#ff0000' }}>{n} hours ago</small>
                 </div>
               </div>
             ))}
@@ -372,7 +356,19 @@ const UserDashboard = () => {
                         <label>Name</label>
                         {isEditingProfile ? <input className="form-control" value={userProfile.name} onChange={(e)=>setUserProfile({...userProfile, name: e.target.value})}/> : <p>{userProfile.name}</p>}
                     </div>
+                    <div className="form-group">
+                        <label>Email</label>
+                        {isEditingProfile ? <input className="form-control" value={userProfile.email} onChange={(e)=>setUserProfile({...userProfile, email: e.target.value})}/> : <p>{userProfile.email}</p>}
+                    </div>
                 </div>
+            </div>
+        );
+
+      case 'settings':
+        return (
+            <div className="card">
+              <h2>Settings</h2>
+              <p>Application configurations go here.</p>
             </div>
         );
 
@@ -397,7 +393,7 @@ const UserDashboard = () => {
             <div className="drawer-avatar">{userProfile.name.charAt(0)}</div>
             <div>
                 <h4 style={{ margin: 0 }}>{userProfile.name}</h4>
-                <small style={{ color: '#3d3b3bff' }}>{userProfile.email}</small>
+                <small style={{ color: '#666' }}>{userProfile.email}</small>
             </div>
         </div>
 
@@ -406,7 +402,7 @@ const UserDashboard = () => {
             <button onClick={() => {setActiveTab('profile'); setIsMenuOpen(false);}}><User size={18}/> My Profile</button>
             <button onClick={() => {setActiveTab('settings'); setIsMenuOpen(false);}}><Settings size={18}/> App Settings</button>
             <button><Phone size={18}/> Emergency Contacts</button>
-            <hr style={{ width: '100%', borderTop: '1px solid #002affff' }} />
+            <hr style={{ width: '100%', borderTop: '1px solid #eee' }} />
             <button style={{ color: 'var(--danger-color)' }} onClick={() => setShowLogoutConfirm(true)}>
                 <LogOut size={18}/> Logout
             </button>
