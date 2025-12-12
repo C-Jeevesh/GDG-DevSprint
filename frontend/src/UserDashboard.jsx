@@ -39,7 +39,6 @@ const UserDashboard = () => {
   const [focusedLocation, setFocusedLocation] = useState(null); // Used to fly map to specific alerts
 
   // --- DATA STATES ---
-  // Replaced static const with State to allow dynamic addition of nearby alerts
   const [allAlerts, setAllAlerts] = useState([
     { id: 1, type: "High Severity", msg: "Accident reported on Highway 4", level: "alert-high", date: "2 mins ago", coords: [12.9352, 77.6245], distance: null },
     { id: 2, type: "Warning", msg: "Heavy rain expected in Sector 5", level: "alert-med", date: "1 hour ago", coords: [12.9250, 77.5938], distance: null },
@@ -83,23 +82,17 @@ const UserDashboard = () => {
   // 1. LIVE GPS TRACKING & MOCK DATA GENERATION
   useEffect(() => {
     if ("geolocation" in navigator) {
-      // Use watchPosition for live tracking instead of getCurrentPosition
       const watchId = navigator.geolocation.watchPosition(
         (position) => {
           const { latitude, longitude } = position.coords;
           
-          // Only update state if position changes significantly (optimization)
           if (!userGps || Math.abs(userGps[0] - latitude) > 0.0001) {
               setUserGps([latitude, longitude]);
               
-              // --- DYNAMIC ALERT GENERATION ---
-              // Since you are likely testing this from a location different than the hardcoded ones,
-              // we generate fake "Suspicious Activity" and "Accidents" near YOU so you can see the feature.
               setAllAlerts(prev => {
-                  // If we already added dynamic alerts, don't add them again
                   if(prev.some(a => a.isDynamic)) return prev;
 
-                  const randomOffset = () => (Math.random() - 0.5) * 0.015; // Approx 1.5km range
+                  const randomOffset = () => (Math.random() - 0.5) * 0.015; 
                   
                   const newNearbyAlerts = [
                       { 
@@ -119,7 +112,6 @@ const UserDashboard = () => {
               });
           }
 
-          // Update complaint form location automatically
           setComplaintForm(prev => ({
             ...prev,
             location: `GPS: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`,
@@ -134,24 +126,22 @@ const UserDashboard = () => {
         { enableHighAccuracy: true }
       );
 
-      // Cleanup watcher on unmount
       return () => navigator.geolocation.clearWatch(watchId);
     }
-  }, []); // Run once on mount
+  }, []); 
 
   // 2. PROCESS ALERTS (Calculate Distances)
   const processedAlerts = allAlerts.map(alert => {
       if (!userGps) return { ...alert, distance: 0 };
       const dist = calculateDistance(userGps[0], userGps[1], alert.coords[0], alert.coords[1]);
-      return { ...alert, distance: dist.toFixed(2) }; // Distance in KM
-  }).sort((a, b) => a.distance - b.distance); // Sort by nearest
+      return { ...alert, distance: dist.toFixed(2) }; 
+  }).sort((a, b) => a.distance - b.distance); 
 
-  // Filter: Separate alerts inside the 2km radius
   const nearbyAlerts = processedAlerts.filter(a => parseFloat(a.distance) <= 2.0);
-  const otherAlerts = processedAlerts.filter(a => parseFloat(a.distance) > 2.0);
   
-  // Decide what to show in the list
-  const displayList = showAllAlerts ? processedAlerts : [...nearbyAlerts, ...otherAlerts.slice(0, 2)];
+  // --- FIXED LOGIC HERE ---
+  // If showAllAlerts is false, strictly show only the first 2 items.
+  const displayList = showAllAlerts ? processedAlerts : processedAlerts.slice(0, 2);
 
   // --- HANDLERS ---
   
@@ -172,26 +162,45 @@ const UserDashboard = () => {
     setTimeout(() => window.location.reload(), 1000); 
   };
 
-  // --- HYBRID CHATBOT LOGIC ---
-  const handleChatSubmit = () => {
+  // --- REAL BACKEND CHATBOT CONNECTION ---
+  const handleChatSubmit = async () => {
     if (!chatInput.trim()) return;
 
+    // 1. Add User Message to UI
     const userMsg = { sender: 'user', text: chatInput };
     setChatHistory(prev => [...prev, userMsg]);
-    const currentInput = chatInput.toLowerCase();
+    
+    // Store input and clear field
+    const messageToSend = chatInput;
     setChatInput("");
 
-    setTimeout(() => {
-      let botResponse = "";
-      if (currentInput.includes("sos") || currentInput.includes("help") || currentInput.includes("emergency")) {
-        botResponse = "🚨 SOS ALERT ACTIVATED! Sending your location to the nearest Police Control Room. Please stay calm.";
-      } else if (currentInput.includes("report") || currentInput.includes("complaint")) {
-        botResponse = "You can forge a complaint by clicking the red 'Forge Complaint' button on your dashboard.";
-      } else {
-        botResponse = "I understand. I am analyzing safety protocols related to your query. Always prioritize your physical safety first.";
+    try {
+      // 2. Connect to Python Backend
+      const response = await fetch('http://127.0.0.1:8000/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+            message: messageToSend,
+            user_id: "user_dashboard" 
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status}`);
       }
-      setChatHistory(prev => [...prev, { sender: 'bot', text: botResponse }]);
-    }, 800);
+
+      // 3. Process Response
+      const data = await response.json();
+      setChatHistory(prev => [...prev, { sender: 'bot', text: data.response }]);
+
+    } catch (error) {
+      console.error("Chat Error:", error);
+      // Fallback if backend is offline
+      setChatHistory(prev => [...prev, { 
+        sender: 'bot', 
+        text: "⚠️ Unable to reach LOCONO server. Please ensure the backend (main.py) is running." 
+      }]);
+    }
   };
 
   const handleSubmitComplaint = async () => {
@@ -228,7 +237,7 @@ const UserDashboard = () => {
                         focusedLocation={focusedLocation} 
                         isFullscreen={isMapFullscreen} 
                         toggleFullscreen={toggleFullscreenMap}
-                        alerts={processedAlerts} // Pass Alerts to Map for Markers
+                        alerts={processedAlerts} 
                     />
                 </div>
             );
@@ -243,7 +252,7 @@ const UserDashboard = () => {
                     focusedLocation={focusedLocation}
                     isFullscreen={isMapFullscreen} 
                     toggleFullscreen={toggleFullscreenMap}
-                    alerts={processedAlerts} // Pass Alerts to Map for Markers
+                    alerts={processedAlerts} 
                 />
             </div>
 
@@ -264,7 +273,6 @@ const UserDashboard = () => {
                         onClick={() => handleAlertClick(alert.coords)} 
                         style={{ 
                             cursor: 'pointer',
-                            // Highlight if within 2km radius
                             borderLeft: isNearby ? '5px solid #ff3b30' : '5px solid #ccc',
                             backgroundColor: isNearby ? '#fff5f5' : 'white'
                         }}
@@ -340,7 +348,7 @@ const UserDashboard = () => {
                   <p style={{ fontSize: '0.9rem', color: '#555', marginTop: '4px' }}>
                     {n===1 ? 'Heavy traffic reported near your saved location.' : 'Your complaint status has been updated to "Reviewed".'}
                   </p>
-                  <small style={{ color: '#999' }}>{n} hours ago</small>
+                  <small style={{ color: '#ff0000ff' }}>{n} hours ago</small>
                 </div>
               </div>
             ))}
@@ -389,7 +397,7 @@ const UserDashboard = () => {
             <div className="drawer-avatar">{userProfile.name.charAt(0)}</div>
             <div>
                 <h4 style={{ margin: 0 }}>{userProfile.name}</h4>
-                <small style={{ color: '#666' }}>{userProfile.email}</small>
+                <small style={{ color: '#3d3b3bff' }}>{userProfile.email}</small>
             </div>
         </div>
 
@@ -398,7 +406,7 @@ const UserDashboard = () => {
             <button onClick={() => {setActiveTab('profile'); setIsMenuOpen(false);}}><User size={18}/> My Profile</button>
             <button onClick={() => {setActiveTab('settings'); setIsMenuOpen(false);}}><Settings size={18}/> App Settings</button>
             <button><Phone size={18}/> Emergency Contacts</button>
-            <hr style={{ width: '100%', borderTop: '1px solid #eee' }} />
+            <hr style={{ width: '100%', borderTop: '1px solid #002affff' }} />
             <button style={{ color: 'var(--danger-color)' }} onClick={() => setShowLogoutConfirm(true)}>
                 <LogOut size={18}/> Logout
             </button>

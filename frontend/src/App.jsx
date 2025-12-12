@@ -20,7 +20,7 @@ function App() {
 
       {/* DEV ROLE SWITCHER (Bottom Right - For Testing) */}
       <div style={{
-        position: 'fixed', bottom: 20, right: 20, zIndex: 9999,
+        position: 'fixed', bottom: 20, center: 20, zIndex: 9999,
         background: '#2d3436', padding: '10px 15px', borderRadius: 50, 
         display: 'flex', gap: 10, boxShadow: '0 4px 15px rgba(0,0,0,0.3)'
       }}>
